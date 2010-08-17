@@ -6,9 +6,10 @@
 
 #define PDBHEADER_LENGTH 78
 #define PDBTYPE_POSITION 64
+#define PDBAUTHOR_POSITION 34
 #define PDBNUMCHAPTERS_POSITION 76
 #define PDBRECORD_ENTRY_SIZE 8
-#define ESC_UNICODE (('\e' << 8) | '\0')
+#define ESC_UNICODE ('\e' << 8)
 #define ESC_ASCII '\e'
 #define NULLCHAR '\0'
 
@@ -36,8 +37,9 @@
       type = OSReadBigInt32([data bytes], 0);
       textEncoding  = type == BOOKTYPE_MTIU 
         ? NSUTF16LittleEndianStringEncoding
-        : CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingBig5);      [fileHandle seekToFileOffset:PDBNUMCHAPTERS_POSITION];
+        : CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingBig5);
       
+      [fileHandle seekToFileOffset:PDBNUMCHAPTERS_POSITION];
       data = [fileHandle readDataOfLength:2];
       numRecords = (NSUInteger)OSReadBigInt16([data bytes], 0);
     } else if (error != NULL){
@@ -68,7 +70,7 @@
   if (type == BOOKTYPE_MTIU)
     while (OSReadBigInt16(bytes, offsetEnd) != ESC_UNICODE) offsetEnd += 2;
   else 
-    while (bytes[offsetEnd] != '\e') offsetEnd++;
+    while (bytes[offsetEnd] != ESC_ASCII) offsetEnd++;
   
   return [[[NSString alloc] initWithBytes:&bytes[offsetStart] length:offsetEnd-offsetStart encoding:textEncoding] autorelease];
 }
@@ -79,7 +81,7 @@
   if (!fileHandle || type != BOOKTYPE_MTIU) return nil;
 
   [fileHandle seekToFileOffset:0];
-  NSData *data = [fileHandle readDataOfLength:34];
+  NSData *data = [fileHandle readDataOfLength:PDBAUTHOR_POSITION];
   
   return [[[NSString alloc] initWithData:data encoding:textEncoding] autorelease];
 }
@@ -98,7 +100,7 @@
     offsetEnd = offsetStart;
     while (OSReadBigInt16(bytes, offsetEnd) != ESC_UNICODE) offsetEnd += 2;
   } else {
-    while (bytes[offsetStart] != '\e') offsetStart++;
+    while (bytes[offsetStart] != ESC_ASCII) offsetStart++;
     offsetStart += 3;
     offsetEnd = offsetStart;
     while (bytes[offsetEnd] != ESC_ASCII) offsetEnd++;
@@ -125,13 +127,18 @@
   return chaps;
 }
 
-- (NSString *)chapterContentAtIndex:(NSUInteger)index
+- (NSString *)contentAtChapter:(NSUInteger)index
 {
   if (!fileHandle) return nil;
 
   NSData *data = [self dataWithRecordIndex:(index+1)];
 
   return [[[NSString alloc] initWithData:data encoding:textEncoding] autorelease];
+}
+
+- (NSString *)stringByReplacingVerticalPunctuations
+{
+  
 }
 
 #pragma mark -

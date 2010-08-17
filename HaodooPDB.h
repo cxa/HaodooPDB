@@ -25,6 +25,6 @@ typedef enum {
 
 - (id)initWithFile:(NSString *)filePath;
 - (id)initWithFile:(NSString *)filePath error:(NSError **)error;
-- (NSString *)chapterContentAtIndex:(NSUInteger)index;
+- (NSString *)contentAtChapter:(NSUInteger)index;
 
 @end
